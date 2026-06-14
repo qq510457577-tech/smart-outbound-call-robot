@@ -18,13 +18,30 @@ from src.config import settings
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+# 静态文件服务：frontend/ 目录下的 HTML/CSS
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "frontend")
+
+app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="/frontend")
 
 # 全局单例
 client = OutboundBotClient()
 task_manager = TaskManager(client)
 dialogue_manager = DialogueManager(client)
 
+
+# ─── 全局错误处理 ───────────────────────────────────
+
+@app.errorhandler(500)
+def handle_500(error):
+    """将 500 错误转换为 JSON 响应"""
+    return jsonify({
+        "error": str(error),
+        "message": "服务器内部错误，请检查阿里云凭据配置",
+    }), 500
+
+@app.errorhandler(404)
+def handle_404(error):
+    return jsonify({"error": "Not Found", "message": str(error)}), 404
 
 # ─── 健康检查 ───────────────────────────────────────
 
@@ -40,7 +57,24 @@ def health():
 
 # ─── 实例管理 ───────────────────────────────────────
 
+def _api(f):
+    """通用 API 装饰器：捕获 SDK 异常，返回 JSON 错误"""
+    from functools import wraps
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"API 错误 [{request.path}]: {e}")
+            return jsonify({
+                "error": str(e),
+                "message": "请求失败，请检查配置或稍后重试",
+            }), 500
+    return wrapper
+
+
 @app.route("/instances", methods=["GET"])
+@_api
 def list_instances():
     """获取外呼机器人实例列表"""
     result = client.list_instances()
@@ -48,6 +82,7 @@ def list_instances():
 
 
 @app.route("/instances/<instance_id>", methods=["GET"])
+@_api
 def describe_instance(instance_id: str):
     """查询实例详情"""
     result = client.describe_instance(instance_id)
@@ -57,6 +92,7 @@ def describe_instance(instance_id: str):
 # ─── 话术管理 ───────────────────────────────────────
 
 @app.route("/scripts", methods=["GET"])
+@_api
 def list_scripts():
     """获取话术列表"""
     instance_id = request.args.get("instance_id", settings.INSTANCE_ID)
@@ -65,6 +101,7 @@ def list_scripts():
 
 
 @app.route("/scripts", methods=["POST"])
+@_api
 def create_script():
     """创建话术"""
     data = request.get_json()
@@ -78,6 +115,7 @@ def create_script():
 
 
 @app.route("/scripts/<script_id>", methods=["GET"])
+@_api
 def describe_script(script_id: str):
     """查询话术详情"""
     data = request.get_json(silent=True) or {}
@@ -87,6 +125,7 @@ def describe_script(script_id: str):
 
 
 @app.route("/scripts/<script_id>/publish", methods=["POST"])
+@_api
 def publish_script(script_id: str):
     """发布话术"""
     data = request.get_json(silent=True) or {}
@@ -98,6 +137,7 @@ def publish_script(script_id: str):
 # ─── 任务组管理 ─────────────────────────────────────
 
 @app.route("/job-groups", methods=["GET"])
+@_api
 def list_job_groups():
     """获取任务组列表"""
     instance_id = request.args.get("instance_id", settings.INSTANCE_ID)
@@ -106,6 +146,7 @@ def list_job_groups():
 
 
 @app.route("/job-groups", methods=["POST"])
+@_api
 def create_job_group():
     """创建任务组"""
     data = request.get_json()
@@ -124,6 +165,7 @@ def create_job_group():
 
 
 @app.route("/job-groups/<job_group_id>", methods=["GET"])
+@_api
 def describe_job_group(job_group_id: str):
     """查询任务组详情"""
     data = request.get_json(silent=True) or {}
@@ -135,6 +177,7 @@ def describe_job_group(job_group_id: str):
 # ─── 任务控制 ───────────────────────────────────────
 
 @app.route("/job-groups/<job_group_id>/start", methods=["POST"])
+@_api
 def start_job_group(job_group_id: str):
     """启动任务组"""
     result = task_manager.start(job_group_id)
@@ -143,6 +186,7 @@ def start_job_group(job_group_id: str):
 
 
 @app.route("/job-groups/<job_group_id>/pause", methods=["POST"])
+@_api
 def pause_job_group(job_group_id: str):
     """暂停任务组"""
     result = task_manager.pause(job_group_id)
@@ -151,6 +195,7 @@ def pause_job_group(job_group_id: str):
 
 
 @app.route("/job-groups/<job_group_id>/resume", methods=["POST"])
+@_api
 def resume_job_group(job_group_id: str):
     """恢复任务组"""
     result = task_manager.resume(job_group_id)
@@ -159,6 +204,7 @@ def resume_job_group(job_group_id: str):
 
 
 @app.route("/job-groups/<job_group_id>/cancel", methods=["POST"])
+@_api
 def cancel_job_group(job_group_id: str):
     """取消任务组"""
     result = task_manager.cancel(job_group_id)
@@ -169,6 +215,7 @@ def cancel_job_group(job_group_id: str):
 # ─── 任务进度 ───────────────────────────────────────
 
 @app.route("/job-groups/<job_group_id>/progress", methods=["GET"])
+@_api
 def get_job_progress(job_group_id: str):
     """获取任务进度"""
     progress = task_manager.get_progress(job_group_id)
@@ -176,6 +223,7 @@ def get_job_progress(job_group_id: str):
 
 
 @app.route("/job-groups/<job_group_id>/jobs", methods=["GET"])
+@_api
 def list_jobs(job_group_id: str):
     """获取任务列表"""
     jobs = task_manager.list_jobs(job_group_id)
@@ -185,6 +233,7 @@ def list_jobs(job_group_id: str):
 # ─── 批量任务创建 ───────────────────────────────────
 
 @app.route("/jobs/batch", methods=["POST"])
+@_api
 def create_batch_job():
     """创建批量外呼任务"""
     data = request.get_json()
@@ -203,6 +252,7 @@ def create_batch_job():
 # ─── 通话对话 ───────────────────────────────────────
 
 @app.route("/dialogue", methods=["POST"])
+@_api
 def send_dialogue():
     """发送对话 utterance 并获取 AI 回复"""
     data = request.get_json()
@@ -218,6 +268,7 @@ def send_dialogue():
 
 
 @app.route("/dialogue/analyze-intent", methods=["POST"])
+@_api
 def analyze_intent():
     """分析用户意图"""
     data = request.get_json()
@@ -229,6 +280,7 @@ def analyze_intent():
 # ─── 黑/白名单 ──────────────────────────────────────
 
 @app.route("/contacts/whitelist", methods=["POST"])
+@_api
 def save_whitelist():
     """保存白名单"""
     data = request.get_json()
@@ -239,6 +291,7 @@ def save_whitelist():
 
 
 @app.route("/contacts/blacklist", methods=["POST"])
+@_api
 def save_blacklist():
     """保存黑名单"""
     data = request.get_json()
@@ -251,6 +304,7 @@ def save_blacklist():
 # ─── 录音下载 ───────────────────────────────────────
 
 @app.route("/recordings/<job_id>", methods=["GET"])
+@_api
 def get_recording(job_id: str):
     """获取录音下载链接
 
@@ -268,6 +322,7 @@ def get_recording(job_id: str):
 # ─── 数据统计 ───────────────────────────────────────
 
 @app.route("/statistics/<job_group_id>", methods=["GET"])
+@_api
 def get_statistics(job_group_id: str):
     """
     获取任务组统计数据
@@ -436,4 +491,9 @@ def update_concurrency():
 if __name__ == "__main__":
     port = int(os.getenv("API_PORT", 5000))
     debug = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    # 根路径重定向到 Web 控制台
+    @app.route("/")
+    def index():
+        from flask import redirect
+        return redirect("/frontend/index.html")
     app.run(host="0.0.0.0", port=port, debug=debug)

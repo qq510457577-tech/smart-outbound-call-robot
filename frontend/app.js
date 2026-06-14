@@ -3,6 +3,7 @@
 // ========================
 
 let API_URL = localStorage.getItem('apiUrl') || 'http://maoni.icu:5000';
+let configNoticeDismissed = false;
 
 // ─── 工具函数 ───────────────────────────────────────
 
@@ -26,6 +27,12 @@ async function api(path, options = {}) {
         if (!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
         return data;
     } catch (e) {
+        // 检测凭据错误
+        const msg = e.message || '';
+        if ((msg.includes('InvalidCredentials') || msg.includes('credentials') || msg.includes('非JSON') || msg.includes('403') || msg.includes('401')) && !configNoticeDismissed) {
+            document.getElementById('configNotice').style.display = 'block';
+            configNoticeDismissed = true;
+        }
         toast(e.message, 'error');
         throw e;
     }
@@ -528,7 +535,12 @@ async function loadStatistics() {
     }
 }
 
-// ─── 模态框 ─────────────────────────────────────────
+function dismissConfigNotice() {
+    document.getElementById('configNotice').style.display = 'none';
+    configNoticeDismissed = true;
+}
+
+// 模态框
 
 function openModal() {
     document.getElementById('modalOverlay').style.display = 'flex';

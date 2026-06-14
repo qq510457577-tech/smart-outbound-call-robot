@@ -58,6 +58,13 @@
         <div id="healthBar" class="health-bar">
             <span class="health-status">⏳ 未检查</span>
         </div>
+        <!-- 凭据配置提示 -->
+        <div id="configNotice" class="config-notice" style="display:none;">
+            <div class="config-notice-inner">
+                <span>⚠️ 需要配置阿里云 AK/SK 和实例 ID 才能使用。请编辑项目 <code>.env</code> 文件，然后运行 <code>sudo systemctl restart outbound-bot</code></span>
+                <button class="btn btn-sm" onclick="dismissConfigNotice()">我知道了</button>
+            </div>
+        </div>
 
         <!-- ========== 页面：控制台 ========== -->
         <div class="page" id="page-dashboard">
