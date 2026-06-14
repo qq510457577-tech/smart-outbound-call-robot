@@ -15,7 +15,14 @@ async function api(path, options = {}) {
     const cfg = { ...defaults, ...options };
     try {
         const res = await fetch(url, cfg);
-        const data = await res.json();
+        const ct = res.headers.get('content-type') || '';
+        let data;
+        if (ct.includes('application/json')) {
+            data = await res.json();
+        } else {
+            const text = await res.text();
+            throw new Error(`服务器返回非JSON响应 (${res.status})。请检查后端日志: ${text.slice(0, 200)}`);
+        }
         if (!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
         return data;
     } catch (e) {
