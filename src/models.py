@@ -65,3 +65,38 @@ class Contact:
     phone_number: str
     name: str = ""
     contact_id: str = ""
+
+
+@dataclass
+class CallRecord:
+    """通话记录"""
+    call_id: str
+    job_id: str
+    calling_number: str
+    called_number: str
+    start_time: str = ""
+    end_time: str = ""
+    duration: int = 0
+    status: str = ""
+    recording_url: str = ""
+
+
+@dataclass
+class DialogueFlow:
+    """对话流程"""
+    flow_id: str
+    script_id: str
+    flow_name: str
+    flow_content: str = ""
+    is_active: bool = True
+    update_time: str = ""
+
+
+@dataclass
+class AgentProfile:
+    """坐席资料"""
+    agent_id: str
+    agent_name: str
+    phone_number: str = ""
+    status: str = ""
+    department: str = ""

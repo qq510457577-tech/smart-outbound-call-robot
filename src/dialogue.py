@@ -50,19 +50,19 @@ class DialogueManager:
 
         实际项目中可对接阿里云 Beebot 意图识别
         """
-        # 简单规则示例
-        intent_map = {
-            "意向": "INTERESTED",
-            "考虑": "CONSIDERING",
-            "不需要": "NOT_INTERESTED",
-            "别打了": "REJECTED",
-            "稍后": "CALL_BACK",
-            "没时间": "CALL_BACK",
-            "好的": "AGREED",
-            "同意": "AGREED",
-        }
+        # 简单规则示例 — 优先级从高到低
+        intent_map = [
+            ("别打了", "REJECTED"),
+            ("不需要", "NOT_INTERESTED"),
+            ("意向", "INTERESTED"),
+            ("考虑", "CONSIDERING"),
+            ("稍后", "CALL_BACK"),
+            ("没时间", "CALL_BACK"),
+            ("好的", "AGREED"),
+            ("同意", "AGREED"),
+        ]
 
-        for keyword, intent in intent_map.items():
+        for keyword, intent in intent_map:
             if keyword in text:
                 return intent
         return "UNKNOWN"

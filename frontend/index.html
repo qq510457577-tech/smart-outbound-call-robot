@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能外呼机器人控制台</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">📞</span>
+                <span class="logo-text">外呼机器人</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-page="dashboard">
+                <span class="nav-icon">📊</span> 控制台
+            </a>
+            <a href="#" class="nav-item" data-page="instances">
+                <span class="nav-icon">⚙️</span> 实例管理
+            </a>
+            <a href="#" class="nav-item" data-page="scripts">
+                <span class="nav-icon">📜</span> 话术管理
+            </a>
+            <a href="#" class="nav-item" data-page="job-groups">
+                <span class="nav-icon">📋</span> 任务管理
+            </a>
+            <a href="#" class="nav-item" data-page="dialogue">
+                <span class="nav-icon">🤖</span> 对话测试
+            </a>
+            <a href="#" class="nav-item" data-page="statistics">
+                <span class="nav-icon">📈</span> 数据统计
+            </a>
+        </nav>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        <!-- 顶部栏 -->
+        <header class="topbar">
+            <div class="topbar-title" id="pageTitle">控制台</div>
+            <div class="topbar-actions">
+                <button class="btn btn-sm btn-outline" onclick="checkHealth()">
+                    🔍 健康检查
+                </button>
+                <div class="api-url-group">
+                    <input type="text" id="apiUrl" placeholder="API地址" value="http://localhost:5000">
+                    <button class="btn btn-sm btn-primary" onclick="saveApiUrl()">保存</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 健康状态栏 -->
+        <div id="healthBar" class="health-bar">
+            <span class="health-status">⏳ 未检查</span>
+        </div>
+
+        <!-- ========== 页面：控制台 ========== -->
+        <div class="page" id="page-dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-info">
+                        <div class="stat-label">任务组总数</div>
+                        <div class="stat-value" id="stat-total-jobs">-</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-info">
+                        <div class="stat-label">已完成</div>
+                        <div class="stat-value" id="stat-completed" style="color: var(--green);">-</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏸️</div>
+                    <div class="stat-info">
+                        <div class="stat-label">待执行</div>
+                        <div class="stat-value" id="stat-pending" style="color: var(--orange);">-</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🔄</div>
+                    <div class="stat-info">
+                        <div class="stat-label">运行中</div>
+                        <div class="stat-value" id="stat-running" style="color: var(--blue);">-</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">❌</div>
+                    <div class="stat-info">
+                        <div class="stat-label">失败</div>
+                        <div class="stat-value" id="stat-failed" style="color: var(--red);">-</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📜</div>
+                    <div class="stat-info">
+                        <div class="stat-label">话术数量</div>
+                        <div class="stat-value" id="stat-scripts">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>最近任务</h3>
+                    <button class="btn btn-sm btn-primary" onclick="navigateTo('job-groups')">查看全部</button>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>任务组ID</th>
+                                <th>名称</th>
+                                <th>状态</th>
+                                <th>总数</th>
+                                <th>已完成</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashRecentJobs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 页面：实例管理 ========== -->
+        <div class="page" id="page-instances" style="display:none;">
+            <div class="card">
+                <div class="card-header">
+                    <h3>外呼实例列表</h3>
+                    <button class="btn btn-sm btn-primary" onclick="loadInstances()">🔄 刷新</button>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>实例ID</th>
+                                <th>实例名称</th>
+                                <th>状态</th>
+                                <th>区域</th>
+                                <th>话术数</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="instancesTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 页面：话术管理 ========== -->
+        <div class="page" id="page-scripts" style="display:none;">
+            <div class="card">
+                <div class="card-header">
+                    <h3>话术列表</h3>
+                    <button class="btn btn-sm btn-primary" onclick="showCreateScriptModal()">+ 创建话术</button>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>话术ID</th>
+                                <th>名称</th>
+                                <th>描述</th>
+                                <th>状态</th>
+                                <th>已调试</th>
+                                <th>已发布</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scriptsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 页面：任务管理 ========== -->
+        <div class="page" id="page-job-groups" style="display:none;">
+            <div class="card">
+                <div class="card-header">
+                    <h3>任务组列表</h3>
+                    <button class="btn btn-sm btn-primary" onclick="showBatchJobModal()">+ 批量任务</button>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>任务组ID</th>
+                                <th>名称</th>
+                                <th>话术ID</th>
+                                <th>状态</th>
+                                <th>进度</th>
+                                <th>总数</th>
+                                <th>已完成</th>
+                                <th>失败</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobGroupsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 页面：对话测试 ========== -->
+        <div class="page" id="page-dialogue" style="display:none;">
+            <div class="card">
+                <div class="card-header">
+                    <h3>对话测试</h3>
+                    <button class="btn btn-sm btn-outline" onclick="resetDialogue()">🔄 新会话</button>
+                </div>
+                <div class="card-body">
+                    <div class="dialogue-setup">
+                        <div class="form-group">
+                            <label>会话ID</label>
+                            <input type="text" id="dialogueSessionId" placeholder="自动生成或手动输入">
+                        </div>
+                        <div class="form-group">
+                            <label>主叫号码</label>
+                            <input type="text" id="dialogueCaller" placeholder="13800138000">
+                        </div>
+                        <div class="form-group">
+                            <label>被叫号码</label>
+                            <input type="text" id="dialogueCallee" placeholder="13900139000">
+                        </div>
+                    </div>
+                    <div class="dialogue-messages" id="dialogueMessages"></div>
+                    <div class="dialogue-input">
+                        <input type="text" id="dialogueInput" placeholder="输入消息..." onkeypress="if(event.key==='Enter')sendDialogue()">
+                        <button class="btn btn-primary" onclick="sendDialogue()">发送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 页面：数据统计 ========== -->
+        <div class="page" id="page-statistics" style="display:none;">
+            <div class="card">
+                <div class="card-header">
+                    <h3>任务组统计</h3>
+                    <div class="form-inline">
+                        <input type="text" id="statJobGroupId" placeholder="输入任务组ID">
+                        <button class="btn btn-sm btn-primary" onclick="loadStatistics()">查询</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="stats-summary" id="statsSummary">
+                        <p class="placeholder-text">请输入任务组ID并点击查询</p>
+                    </div>
+                    <div class="status-bar-chart" id="statusChart"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 通用模态框 -->
+    <div class="modal-overlay" id="modalOverlay" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">标题</h3>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer" id="modalFooter">
+                <button class="btn btn-outline" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" id="modalConfirm">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
