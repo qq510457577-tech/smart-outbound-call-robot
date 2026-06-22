@@ -47,7 +47,7 @@ class OutboundBotClient:
 
     def list_scripts(self, instance_id: str) -> List[Dict]:
         """获取话术列表"""
-        req = outbound_models.ListScriptsRequest(instance_id=instance_id)
+        req = outbound_models.ListScriptsRequest(instance_id=instance_id, page_number=1, page_size=20)
         resp = self._client.list_scripts(req)
         return self._to_dict(resp.body)
 
@@ -57,10 +57,13 @@ class OutboundBotClient:
     ) -> Dict:
         """创建话术"""
         req = outbound_models.CreateScriptRequest(
+
             instance_id=instance_id,
             script_name=name,
             script_content=script_content,
             script_description=script_description,
+            industry='通用',
+            scene='通用'
         )
         resp = self._client.create_script(req)
         return self._to_dict(resp.body)
@@ -85,7 +88,7 @@ class OutboundBotClient:
 
     def list_job_groups(self, instance_id: str) -> List[Dict]:
         """获取任务组列表"""
-        req = outbound_models.ListJobGroupsRequest(instance_id=instance_id)
+        req = outbound_models.ListJobGroupsRequest(instance_id=instance_id, page_number=1, page_size=20)
         resp = self._client.list_job_groups(req)
         return self._to_dict(resp.body)
 
@@ -203,7 +206,10 @@ class OutboundBotClient:
     def list_intents(self, instance_id: str, script_id: str) -> List[Dict]:
         """获取意图列表"""
         req = outbound_models.ListIntentsRequest(
-            instance_id=instance_id, script_id=script_id
+            instance_id=instance_id,
+            script_id=script_id,
+            page_number=1,
+            page_size=20
         )
         resp = self._client.list_intents(req)
         return self._to_dict(resp.body)
@@ -304,4 +310,6 @@ class OutboundBotClient:
     @staticmethod
     def _to_dict(obj) -> Any:
         """SDK 返回对象转字典"""
+        if hasattr(obj, "to_map"):
+            return obj.to_map()
         return json.loads(str(obj))
